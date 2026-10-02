@@ -153,3 +153,12 @@ curl https://你的域名/v1/chat/completions \
 ```
 
 注意：目前统一网关先支持非流式 `stream:false`；SSE 流式、统一计费、用量统计、自动故障转移和负载均衡还可以作为下一阶段加入。
+
+
+### 新增三家
+
+**百度文心 / 千帆**：使用千帆 V2 OpenAI-compatible API，默认 Base URL 为 `https://qianfan.baidubce.com/v2`。当前目录加入 ERNIE 5.0、ERNIE 5.0 Thinking Preview、ERNIE X1.1 Preview、ERNIE 4.5 Turbo，以及千帆中的 DeepSeek-V4 模型。citeturn2search0turn2search2
+
+**小米 MiMo**：加入 MiMo-V2.6-Pro、MiMo-V2.6-Flash、MiMo-V2-Pro、MiMo-V2-Flash。小米官方目前列出的 MiMo-V2.6 API 模型名包括 `mimo-v2.6-pro` 和 `mimo-v2.6-flash`；MiMo-V2-Pro 也已公开 API。由于官方 API Endpoint 可能随开发者平台配置变化，本项目要求通过 `MIMO_BASE_URL` 显式配置，不硬编码一个未经官方文档确认的地址。citeturn1search2turn2search6
+
+**阶跃星辰 / StepFun**：加入 Step 5 Preview、Step 3.7 Flash、Step 3.5 Flash 和 StepAudio 3 Realtime。官方示例使用 OpenAI SDK、`https://api.stepfun.com/v1`，因此直接走本项目统一的 Chat Completions 适配层。citeturn2search4
