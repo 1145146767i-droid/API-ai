@@ -194,6 +194,17 @@ function json(res,status,data){
  res.end(JSON.stringify(data));
 }
 function read(req){return new Promise((ok,fail)=>{let s="";req.on("data",c=>s+=c);req.on("end",()=>{try{ok(JSON.parse(s||"{}"))}catch(e){fail(e)}})})}
+function extractText(content){return typeof content==="string"?content:JSON.stringify(content||"")}
+function fileContext(files=[]){
+ if(!Array.isArray(files)||!files.length)return "";
+ return "\n\n【用户上传文件】\n"+files.map((f,i)=>{
+  const name=f.name||("file-"+(i+1)),type=f.type||"application/octet-stream",text=f.text||"";
+  return "["+(i+1)+"] "+name+" ("+type+")\n"+String(text).slice(0,200000);
+ }).join("\n\n");
+}
+function normalizeSearchMode(mode){
+ return mode==="always"||mode==="off"?""+mode:"auto";
+}
 function keyFor(provider){const k=process.env[KEYS[provider]];if(!k)throw new Error("服务器没有配置 "+KEYS[provider]);return k}
 function allowed(provider,model){return CATALOG[provider]?.models.some(x=>x.id===model)}
 function messagesToText(messages){return messages.map(m=>m.role.toUpperCase()+": "+(typeof m.content==="string"?m.content:JSON.stringify(m.content))).join("\n")}
@@ -213,14 +224,15 @@ async function geminiChat(messages,model,search){
  const key=keyFor("gemini");
  const input=messages.map(m=>({role:m.role==="assistant"?"model":"user",parts:[{text:String(m.content)}]}));
  const body={contents:input};
- if(search)body.tools=[{google_search:{}}];
+ if(searchMode==="always" || searchMode==="auto")body.tools=[{google_search:{}}];
  const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(model)+":generateContent?key="+encodeURIComponent(key),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
  const d=await r.json();if(!r.ok)throw new Error(d.error?.message||("Gemini API 错误："+r.status));
  const text=(d.candidates?.[0]?.content?.parts||[]).filter(p=>p.text).map(p=>p.text).join("");
  return {provider:"gemini",model:d.modelVersion||model,content:text,webSearch:!!search,grounding:d.candidates?.[0]?.groundingMetadata||null};
 }
 
-async function chat(provider,messages,model,search){
+async function chat(provider,messages,model,searchMode="auto",files=[]){
+
  if(!CATALOG[provider])throw new Error("不支持的 AI 家族："+provider);
  if(!allowed(provider,model))throw new Error("模型不在当前家族目录中："+model);
 
@@ -230,10 +242,18 @@ async function chat(provider,messages,model,search){
  if(provider==="microsoft" && !model)throw new Error("Microsoft Foundry/Azure 需要配置 AZURE_MODEL_DEPLOYMENT");
  if(provider==="gemini")return geminiChat(messages,model,search);
 
- let finalMessages=messages;
+ let finalMessages=messages.map(m=>({...m}));
+ const fc=fileContext(files);
+ if(fc){
+  const last=finalMessages.length-1;
+  if(last>=0 && finalMessages[last].role==="user") finalMessages[last]={...finalMessages[last],content:extractText(finalMessages[last].content)+fc};
+ }
  let searchData=null;
- if(search){
-  const q=[...messages].reverse().find(m=>m.role==="user")?.content;
+ const mode=normalizeSearchMode(searchMode);
+ const q=[...finalMessages].reverse().find(m=>m.role==="user")?.content;
+ const shouldSearch=mode==="always" || (mode==="auto" && /^(查|搜索|搜一下|联网|最新|今天|现在|新闻|价格|官网|资料|查找|检索)/.test(String(q||"")));
+ if(shouldSearch){
+  if(!q)throw new Error("联网搜索需要用户问题");
   if(!q)throw new Error("联网搜索需要用户问题");
   searchData=await webSearch(String(q));
   const context=searchContext(searchData);
@@ -255,7 +275,7 @@ async function chat(provider,messages,model,search){
  if(provider==="microsoft" && process.env.AZURE_API_VERSION) headers["api-version"]=process.env.AZURE_API_VERSION;
  const r=await fetch(BASE[provider]+"/chat/completions",{method:"POST",headers,body:JSON.stringify({model,messages:finalMessages,temperature:0.7})});
  const d=await r.json();if(!r.ok)throw new Error(d.error?.message||("上游 API 错误："+r.status));
- return {provider,model:d.model||model,content:d.choices?.[0]?.message?.content||"",webSearch:!!search};
+ return {provider,model:d.model||model,content:d.choices?.[0]?.message?.content||"",webSearch:shouldSearch};
 }
 
 const server=http.createServer(async(req,res)=>{
@@ -279,10 +299,10 @@ const server=http.createServer(async(req,res)=>{
    if(!found)return json(res,400,{error:{message:"未知模型："+b.model,type:"invalid_request_error"}});
    provider=found.provider;model=found.model;
   }
-  const out=await chat(provider,b.messages,model,!!b.web_search);
+  const out=await chat(provider,b.messages,model,b.searchMode||"auto",b.files||[]);
   return json(res,200,{id:"chatcmpl-"+Date.now(),object:"chat.completion",created:Math.floor(Date.now()/1000),model:provider+"/"+out.model,choices:[{index:0,message:{role:"assistant",content:out.content},finish_reason:"stop"}],usage:out.usage||undefined});
  }catch(e){return json(res,500,{error:{message:e.message,type:"api_error"}})}}
- if(req.method==="POST"&&req.url==="/api/chat"){try{const b=await read(req);if(!Array.isArray(b.messages)||!b.messages.length)return json(res,400,{error:"messages 不能为空"});return json(res,200,await chat(b.provider||"openai",b.messages,b.model,!!b.webSearch))}catch(e){return json(res,500,{error:e.message})}}
+ if(req.method==="POST"&&req.url==="/api/chat"){try{const b=await read(req);if(!Array.isArray(b.messages)||!b.messages.length)return json(res,400,{error:"messages 不能为空"});return json(res,200,await chat(b.provider||"openai",b.messages,b.model,b.searchMode||"auto",b.files||[]))}catch(e){return json(res,500,{error:e.message})}}
  return json(res,404,{error:"Not Found"});
 });
 server.listen(PORT,()=>console.log("API-AI running on port "+PORT));
