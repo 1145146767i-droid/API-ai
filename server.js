@@ -48,6 +48,40 @@ const CATALOG={
    {id:"qwen3.6-coder",name:"Qwen3.6-Coder",family:"Qwen Coder",type:"编程"}
   ]
  },
+ glm:{
+  name:"GLM / Z.ai",
+  models:[
+   {id:"glm-5.3",name:"GLM-5.3",family:"GLM-5.3",type:"旗舰 / 推理 / 编程"},
+   {id:"glm-5.3-flash",name:"GLM-5.3-Flash",family:"GLM-5.3",type:"快速 / 多模态"},
+   {id:"glm-5.2",name:"GLM-5.2",family:"GLM-5",type:"通用 / Agent"},
+   {id:"glm-5",name:"GLM-5",family:"GLM-5",type:"通用"},
+   {id:"glm-4.7",name:"GLM-4.7",family:"GLM-4",type:"通用 / 编程"},
+   {id:"glm-4.7-flash",name:"GLM-4.7-Flash",family:"GLM-4",type:"快速"}
+  ]
+ },
+ doubao:{
+  name:"豆包 / 火山方舟",
+  models:[
+   {id:"doubao-seed-2-1-pro-260628",name:"Doubao-Seed-2.1-Pro",family:"Seed 2.1",type:"旗舰 / 推理"},
+   {id:"doubao-seed-2-1-turbo-260528",name:"Doubao-Seed-2.1-Turbo",family:"Seed 2.1",type:"高速通用"},
+   {id:"doubao-seed-2-1-lite-260528",name:"Doubao-Seed-2.1-Lite",family:"Seed 2.1",type:"轻量"},
+   {id:"doubao-seed-2-0-pro-260215",name:"Doubao-Seed-2.0-Pro",family:"Seed 2.0",type:"旗舰"},
+   {id:"doubao-seed-2-0-lite-260215",name:"Doubao-Seed-2.0-Lite",family:"Seed 2.0",type:"轻量"},
+   {id:"doubao-seed-2-0-mini-260215",name:"Doubao-Seed-2.0-Mini",family:"Seed 2.0",type:"快速 / 轻量"},
+   {id:"doubao-seed-2-0-code-260215",name:"Doubao-Seed-2.0-Code",family:"Seed 2.0 Code",type:"编程"}
+  ]
+ },
+ grok:{
+  name:"Grok / xAI",
+  models:[
+   {id:"grok-4.7",name:"Grok 4.7",family:"Grok 4",type:"旗舰 / 编程 / Agent"},
+   {id:"grok-4.6",name:"Grok 4.6",family:"Grok 4",type:"旗舰 / 通用"},
+   {id:"grok-4.20",name:"Grok 4.20",family:"Grok 4",type:"新一代"},
+   {id:"grok-4.1",name:"Grok 4.1",family:"Grok 4",type:"通用"},
+   {id:"grok-4",name:"Grok 4",family:"Grok 4",type:"推理 / 通用"},
+   {id:"grok-3",name:"Grok 3",family:"Grok 3",type:"通用"}
+  ]
+ },
  gemini:{
   name:"Gemini / Google",
   models:[
@@ -70,9 +104,12 @@ const BASE={
  openai:"https://api.openai.com/v1",
  deepseek:"https://api.deepseek.com",
  claude:"https://api.anthropic.com/v1",
- qwen:process.env.QWEN_BASE_URL||"https://dashscope-us.aliyuncs.com/compatible-mode/v1"
+ qwen:process.env.QWEN_BASE_URL||"https://dashscope-us.aliyuncs.com/compatible-mode/v1",
+ glm:process.env.GLM_BASE_URL||"https://api.z.ai/api/paas/v4",
+ doubao:process.env.DOUBAO_BASE_URL||"https://ark.cn-beijing.volces.com/api/v3",
+ grok:process.env.XAI_BASE_URL||"https://api.x.ai/v1"
 };
-const KEYS={openai:"OPENAI_API_KEY",deepseek:"DEEPSEEK_API_KEY",claude:"ANTHROPIC_API_KEY",qwen:"DASHSCOPE_API_KEY",gemini:"GEMINI_API_KEY"};
+const KEYS={openai:"OPENAI_API_KEY",deepseek:"DEEPSEEK_API_KEY",claude:"ANTHROPIC_API_KEY",qwen:"DASHSCOPE_API_KEY",glm:"ZAI_API_KEY",doubao:"ARK_API_KEY",grok:"XAI_API_KEY",gemini:"GEMINI_API_KEY"};
 
 function json(res,status,data){
  res.writeHead(status,{"Content-Type":"application/json; charset=utf-8","Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"Content-Type, Authorization","Access-Control-Allow-Methods":"GET,POST,OPTIONS"});
