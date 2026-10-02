@@ -10,8 +10,8 @@
 - Qwen：Alibaba Cloud Model Studio OpenAI-compatible API
 - 一个统一的 `POST /api/chat` 接口
 - 网页端支持四个 AI 家族，并可先选家族再选具体模型
-- `GET /api/models` 查看两个提供商是否已配置
-- 网页端可以切换 GPT / DeepSeek
+- `GET /api/catalog` 查看四个提供商和模型是否已配置
+- 网页端可以切换 GPT / DeepSeek / Claude / Qwen
 - API Key 只放服务器环境变量，不提交到 GitHub
 
 ## 部署
