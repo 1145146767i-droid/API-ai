@@ -220,18 +220,19 @@ function searchContext(s){
  return "\n\n【联网搜索结果，仅供回答参考】\n"+(s.answer?"搜索摘要："+s.answer+"\n":"")+s.results.map((x,i)=>"["+String(i+1)+"] "+x.title+"\nURL: "+x.url+"\n"+x.content).join("\n\n");
 }
 
-async function geminiChat(messages,model,search){
+async function geminiChat(messages,model,search,systemPrompt="",temperature=0.7){
  const key=keyFor("gemini");
  const input=messages.map(m=>({role:m.role==="assistant"?"model":"user",parts:[{text:String(m.content)}]}));
- const body={contents:input};
- if(searchMode==="always" || searchMode==="auto")body.tools=[{google_search:{}}];
+ const body={contents:input,generationConfig:{temperature}};
+ if(systemPrompt)body.systemInstruction={parts:[{text:systemPrompt}]};
+ if(search)body.tools=[{google_search:{}}];
  const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(model)+":generateContent?key="+encodeURIComponent(key),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
  const d=await r.json();if(!r.ok)throw new Error(d.error?.message||("Gemini API 错误："+r.status));
  const text=(d.candidates?.[0]?.content?.parts||[]).filter(p=>p.text).map(p=>p.text).join("");
  return {provider:"gemini",model:d.modelVersion||model,content:text,webSearch:!!search,grounding:d.candidates?.[0]?.groundingMetadata||null};
 }
 
-async function chat(provider,messages,model,searchMode="auto",files=[]){
+async function chat(provider,messages,model,searchMode="auto",files=[],systemPrompt="",temperature=0.7){
 
  if(!CATALOG[provider])throw new Error("不支持的 AI 家族："+provider);
  if(!allowed(provider,model))throw new Error("模型不在当前家族目录中："+model);
@@ -240,9 +241,10 @@ async function chat(provider,messages,model,searchMode="auto",files=[]){
  if(provider==="microsoft" && model==="azure-deployment") model=process.env.AZURE_MODEL_DEPLOYMENT||"";
  if(provider==="microsoft" && model==="azure-openai") model=process.env.AZURE_MODEL_DEPLOYMENT||"";
  if(provider==="microsoft" && !model)throw new Error("Microsoft Foundry/Azure 需要配置 AZURE_MODEL_DEPLOYMENT");
- if(provider==="gemini")return geminiChat(messages,model,search);
+ if(provider==="gemini"){const mode=normalizeSearchMode(searchMode);const q=[...messages].reverse().find(m=>m.role==="user")?.content;const shouldSearch=mode==="always" || (mode==="auto" && /^(查|搜索|搜一下|联网|最新|今天|现在|新闻|价格|官网|资料|查找|检索)/.test(String(q||"")));return geminiChat(messages,model,shouldSearch,systemPrompt,temperature)}
 
  let finalMessages=messages.map(m=>({...m}));
+ if(systemPrompt)finalMessages=[{role:"system",content:String(systemPrompt)},...finalMessages];
  const fc=fileContext(files);
  if(fc){
   const last=finalMessages.length-1;
@@ -257,7 +259,7 @@ async function chat(provider,messages,model,searchMode="auto",files=[]){
   if(!q)throw new Error("联网搜索需要用户问题");
   searchData=await webSearch(String(q));
   const context=searchContext(searchData);
-  finalMessages=[{role:"system",content:"你可以参考下面的联网搜索结果回答用户。请优先使用搜索结果中的最新事实；不要编造不存在的来源。如果给出来源，请保留 URL。"+context},...messages];
+  finalMessages=[...finalMessages.filter(m=>m.role==="system"),{role:"system",content:"你可以参考下面的联网搜索结果回答用户。请优先使用搜索结果中的最新事实；不要编造不存在的来源。如果给出来源，请保留 URL。"+context},...finalMessages.filter(m=>m.role!=="system")];
  }
 
  const key=keyFor(provider);
@@ -265,15 +267,15 @@ async function chat(provider,messages,model,searchMode="auto",files=[]){
  if(provider==="claude"){
   const system=finalMessages.filter(m=>m.role==="system").map(m=>m.content).join("\n\n");
   const userMessages=finalMessages.filter(m=>m.role!=="system");
-  const body={model,max_tokens:4096,messages:userMessages};if(system)body.system=system;
+  const body={model,max_tokens:4096,messages:userMessages,temperature};if(system)body.system=system;
   const r=await fetch(BASE.claude+"/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01"},body:JSON.stringify(body)});
   const d=await r.json();if(!r.ok)throw new Error(d.error?.message||("Claude API 错误："+r.status));
-  return {provider,model:d.model||model,content:(d.content||[]).filter(x=>x.type==="text").map(x=>x.text).join("\n"),webSearch:!!search};
+  return {provider,model:d.model||model,content:(d.content||[]).filter(x=>x.type==="text").map(x=>x.text).join("\n"),webSearch:shouldSearch};
  }
 
  const headers={"Content-Type":"application/json","Authorization":"Bearer "+key};
  if(provider==="microsoft" && process.env.AZURE_API_VERSION) headers["api-version"]=process.env.AZURE_API_VERSION;
- const r=await fetch(BASE[provider]+"/chat/completions",{method:"POST",headers,body:JSON.stringify({model,messages:finalMessages,temperature:0.7})});
+ const r=await fetch(BASE[provider]+"/chat/completions",{method:"POST",headers,body:JSON.stringify({model,messages:finalMessages,temperature})});
  const d=await r.json();if(!r.ok)throw new Error(d.error?.message||("上游 API 错误："+r.status));
  return {provider,model:d.model||model,content:d.choices?.[0]?.message?.content||"",webSearch:shouldSearch};
 }
@@ -299,10 +301,10 @@ const server=http.createServer(async(req,res)=>{
    if(!found)return json(res,400,{error:{message:"未知模型："+b.model,type:"invalid_request_error"}});
    provider=found.provider;model=found.model;
   }
-  const out=await chat(provider,b.messages,model,b.searchMode||"auto",b.files||[]);
+  const out=await chat(provider,b.messages,model,b.searchMode||"auto",b.files||[],b.systemPrompt||"",Number.isFinite(Number(b.temperature))?Math.max(0,Math.min(2,Number(b.temperature))):0.7);
   return json(res,200,{id:"chatcmpl-"+Date.now(),object:"chat.completion",created:Math.floor(Date.now()/1000),model:provider+"/"+out.model,choices:[{index:0,message:{role:"assistant",content:out.content},finish_reason:"stop"}],usage:out.usage||undefined});
  }catch(e){return json(res,500,{error:{message:e.message,type:"api_error"}})}}
- if(req.method==="POST"&&req.url==="/api/chat"){try{const b=await read(req);if(!Array.isArray(b.messages)||!b.messages.length)return json(res,400,{error:"messages 不能为空"});return json(res,200,await chat(b.provider||"openai",b.messages,b.model,b.searchMode||"auto",b.files||[]))}catch(e){return json(res,500,{error:e.message})}}
+ if(req.method==="POST"&&req.url==="/api/chat"){try{const b=await read(req);if(!Array.isArray(b.messages)||!b.messages.length)return json(res,400,{error:"messages 不能为空"});return json(res,200,await chat(b.provider||"openai",b.messages,b.model,b.searchMode||"auto",b.files||[],b.systemPrompt||"",Number.isFinite(Number(b.temperature))?Math.max(0,Math.min(2,Number(b.temperature))):0.7))}catch(e){return json(res,500,{error:e.message})}}
  return json(res,404,{error:"Not Found"});
 });
 server.listen(PORT,()=>console.log("API-AI running on port "+PORT));
