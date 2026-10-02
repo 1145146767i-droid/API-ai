@@ -82,6 +82,45 @@ const CATALOG={
    {id:"grok-3",name:"Grok 3",family:"Grok 3",type:"通用"}
   ]
  },
+ meta:{
+  name:"Meta AI / Meta Model API",
+  models:[
+   {id:"muse-spark-1.3",name:"Muse Spark 1.3",family:"Muse Spark",type:"旗舰 / Agent / 多模态"},
+   {id:"muse-spark-1.1",name:"Muse Spark 1.1",family:"Muse Spark",type:"推理 / 多模态"}
+  ]
+ },
+ microsoft:{
+  name:"Microsoft AI / Foundry",
+  models:[
+   {id:"azure-deployment",name:"Azure 部署模型（自定义 Deployment ID）",family:"Microsoft Foundry",type:"自定义部署"},
+   {id:"azure-openai",name:"Azure OpenAI（自定义 Deployment ID）",family:"Azure OpenAI",type:"OpenAI 兼容"}
+  ]
+ },
+ kimi:{
+  name:"Kimi / Moonshot AI",
+  models:[
+   {id:"kimi-k2.5",name:"Kimi K2.5",family:"Kimi K2",type:"旗舰 / 多模态"},
+   {id:"kimi-k2",name:"Kimi K2",family:"Kimi K2",type:"推理 / 编程"},
+   {id:"kimi-k2-thinking",name:"Kimi K2 Thinking",family:"Kimi K2",type:"深度推理"},
+   {id:"kimi-k2-thinking-turbo",name:"Kimi K2 Thinking Turbo",family:"Kimi K2",type:"高速推理"}
+  ]
+ },
+ minimax:{
+  name:"MiniMax",
+  models:[
+   {id:"MiniMax-M3",name:"MiniMax M3",family:"MiniMax M3",type:"旗舰 / Agent / 多模态"},
+   {id:"MiniMax-M2.7",name:"MiniMax M2.7",family:"MiniMax M2",type:"通用 / 编程"},
+   {id:"MiniMax-M2.7-highspeed",name:"MiniMax M2.7 Highspeed",family:"MiniMax M2",type:"高速 / 编程"}
+  ]
+ },
+ hunyuan:{
+  name:"腾讯混元 / Tencent HY",
+  models:[
+   {id:"hunyuan-turbos-latest",name:"混元 Turbo",family:"混元 Turbo",type:"通用"},
+   {id:"hunyuan-pro",name:"混元 Pro",family:"混元 Pro",type:"旗舰"},
+   {id:"hunyuan-standard",name:"混元 Standard",family:"混元 Standard",type:"通用"}
+  ]
+ },
  gemini:{
   name:"Gemini / Google",
   models:[
@@ -107,9 +146,14 @@ const BASE={
  qwen:process.env.QWEN_BASE_URL||"https://dashscope-us.aliyuncs.com/compatible-mode/v1",
  glm:process.env.GLM_BASE_URL||"https://api.z.ai/api/paas/v4",
  doubao:process.env.DOUBAO_BASE_URL||"https://ark.cn-beijing.volces.com/api/v3",
- grok:process.env.XAI_BASE_URL||"https://api.x.ai/v1"
+ grok:process.env.XAI_BASE_URL||"https://api.x.ai/v1",
+ meta:process.env.META_BASE_URL||"https://api.llama.com/v1",
+ microsoft:process.env.MICROSOFT_BASE_URL||"",
+ kimi:process.env.KIMI_BASE_URL||"https://api.moonshot.cn/v1",
+ minimax:process.env.MINIMAX_BASE_URL||"https://api.minimax.io/v1",
+ hunyuan:process.env.HUNYUAN_BASE_URL||"https://api.hunyuan.cloud.tencent.com/v1"
 };
-const KEYS={openai:"OPENAI_API_KEY",deepseek:"DEEPSEEK_API_KEY",claude:"ANTHROPIC_API_KEY",qwen:"DASHSCOPE_API_KEY",glm:"ZAI_API_KEY",doubao:"ARK_API_KEY",grok:"XAI_API_KEY",gemini:"GEMINI_API_KEY"};
+const KEYS={openai:"OPENAI_API_KEY",deepseek:"DEEPSEEK_API_KEY",claude:"ANTHROPIC_API_KEY",qwen:"DASHSCOPE_API_KEY",glm:"ZAI_API_KEY",doubao:"ARK_API_KEY",grok:"XAI_API_KEY",meta:"META_API_KEY",microsoft:"MICROSOFT_API_KEY",kimi:"KIMI_API_KEY",minimax:"MINIMAX_API_KEY",hunyuan:"HUNYUAN_API_KEY",gemini:"GEMINI_API_KEY"};
 
 function json(res,status,data){
  res.writeHead(status,{"Content-Type":"application/json; charset=utf-8","Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"Content-Type, Authorization","Access-Control-Allow-Methods":"GET,POST,OPTIONS"});
@@ -146,6 +190,9 @@ async function chat(provider,messages,model,search){
  if(!CATALOG[provider])throw new Error("不支持的 AI 家族："+provider);
  if(!allowed(provider,model))throw new Error("模型不在当前家族目录中："+model);
 
+ if(provider==="microsoft" && model==="azure-deployment") model=process.env.AZURE_MODEL_DEPLOYMENT||"";
+ if(provider==="microsoft" && model==="azure-openai") model=process.env.AZURE_MODEL_DEPLOYMENT||"";
+ if(provider==="microsoft" && !model)throw new Error("Microsoft Foundry/Azure 需要配置 AZURE_MODEL_DEPLOYMENT");
  if(provider==="gemini")return geminiChat(messages,model,search);
 
  let finalMessages=messages;
@@ -169,7 +216,9 @@ async function chat(provider,messages,model,search){
   return {provider,model:d.model||model,content:(d.content||[]).filter(x=>x.type==="text").map(x=>x.text).join("\n"),webSearch:!!search};
  }
 
- const r=await fetch(BASE[provider]+"/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},body:JSON.stringify({model,messages:finalMessages,temperature:0.7})});
+ const headers={"Content-Type":"application/json","Authorization":"Bearer "+key};
+ if(provider==="microsoft" && process.env.AZURE_API_VERSION) headers["api-version"]=process.env.AZURE_API_VERSION;
+ const r=await fetch(BASE[provider]+"/chat/completions",{method:"POST",headers,body:JSON.stringify({model,messages:finalMessages,temperature:0.7})});
  const d=await r.json();if(!r.ok)throw new Error(d.error?.message||("上游 API 错误："+r.status));
  return {provider,model:d.model||model,content:d.choices?.[0]?.message?.content||"",webSearch:!!search};
 }
