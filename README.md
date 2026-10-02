@@ -1,146 +1,137 @@
-# API-AI 🤖
+# API-AI
 
-统一的 GPT + DeepSeek + Claude + Qwen + Gemini + GLM + 豆包 + Grok API 网关。
+## 🚀 多模型 API 聚合平台
 
-## 支持
+API-AI 是一个面向开发者的**统一 AI API 聚合平台**：把不同厂商的模型接入同一个接口，同时提供一个可以直接聊天、上传文件、联网搜索和查看代码输出的 Web UI。
 
-- GPT：OpenAI API
-- DeepSeek：DeepSeek API
-- Claude：Anthropic Messages API
-- Qwen：Alibaba Cloud Model Studio OpenAI-compatible API
-- Gemini：Google Gemini API
-- GLM：Z.ai API（OpenAI 兼容）
-- 豆包：火山方舟 API
-- Grok：xAI API
-- 可选联网搜索：Gemini 使用 Google Search grounding；GPT / DeepSeek / Claude / Qwen 使用统一搜索适配器
-- 一个统一的 `POST /api/chat` 接口
-- 网页端支持四个 AI 家族，并可先选家族再选具体模型
-- `GET /api/catalog` 查看四个提供商和模型是否已配置
-- 网页端可以切换 GPT / DeepSeek / Claude / Qwen
-- API Key 只放服务器环境变量，不提交到 GitHub
+你只需要在服务器端配置各厂商 API Key，客户端就可以通过统一的 API-AI 接口访问多个 AI 模型。
 
-## 部署
-
-设置环境变量：
-
-```text
-OPENAI_API_KEY=你的 OpenAI Key
-OPENAI_MODEL=gpt-6-luna
-
-DEEPSEEK_API_KEY=你的 DeepSeek Key
-DEEPSEEK_MODEL=deepseek-chat
-
-ANTHROPIC_API_KEY=你的 Anthropic Key
-
-DASHSCOPE_API_KEY=你的 DashScope Key
-QWEN_BASE_URL=https://dashscope-us.aliyuncs.com/compatible-mode/v1
-
-GEMINI_API_KEY=你的 Gemini API Key
-
-ZAI_API_KEY=你的 Z.ai Key
-GLM_BASE_URL=https://api.z.ai/api/paas/v4
-
-ARK_API_KEY=你的火山方舟 Key
-DOUBAO_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
-
-XAI_API_KEY=你的 xAI Key
-XAI_BASE_URL=https://api.x.ai/v1
-
-TAVILY_API_KEY=你的 Tavily API Key
-TAVILY_BASE_URL=https://api.tavily.com/search
-```
-
-然后：
-
-```bash
-npm start
-```
-
-## API
-
-请求：
-
-```json
-POST /api/chat
-{
-  "provider":"openai",
-  "messages":[
-    {"role":"user","content":"你好"}
-  ]
-}
-```
-
-把 `provider` 改成 `deepseek` 就会调用 DeepSeek。
-
-**注意：仓库中不要提交真实 API Key。**
-## Claude / Qwen 说明
-
-Claude 使用 Anthropic 官方 Messages API；Qwen 使用阿里云 Model Studio 的 OpenAI 兼容接口。Qwen 的 API Key 与 Base URL 必须属于同一地域，否则会出现鉴权错误。
-
-## 联网搜索
-
-网页端勾选“联网搜索”后：
-
-- Gemini 直接使用 Google Search grounding；Google 官方文档说明该工具可让 Gemini 访问实时网页并返回可验证来源。citeturn0search3
-- GPT、DeepSeek、Claude、Qwen 通过 `TAVILY_API_KEY` 获取搜索结果，再把结果作为上下文交给对应模型。
-- `/api/search` 可单独调用统一搜索接口。
-
-## Gemini
-
-Gemini API 使用 `GEMINI_API_KEY`。当前目录包含 Gemini 3.8 Flash、3.7 Flash、3.6 Flash、3.5 Flash、3.1 Pro 等 API 模型。Google 官方模型列表持续更新，因此建议定期刷新目录。citeturn1search0turn1search1
-
-## DeepSeek
-
-当前官方 API 主力为 `deepseek-flash`（DeepSeek-V4.1-Flash）和 `deepseek-v4-pro`（DeepSeek-V4-Pro）。旧的 `deepseek-v4-flash` 与 `deepseek-v4-flash-vision-exp` 仍可作为兼容名称使用，但官方说明它们已经下线并会路由到 V4.1-Flash。citeturn1search2turn1search3
-
-## 新增 API
-
-### GLM
-使用 Z.ai 的 OpenAI 兼容 API。当前目录包含 GLM-5.3、GLM-5.3-Flash、GLM-5.2、GLM-5、GLM-4.7、GLM-4.7-Flash。Z.ai 文档给出的兼容 Base URL 为 `https://api.z.ai/api/paas/v4/`。citeturn1search3
-
-### 豆包
-使用火山方舟 API，默认 Base URL 为 `https://ark.cn-beijing.volces.com/api/v3`。官方文档示例展示了 `doubao-seed-2-1-pro-260628`，并提供 Chat Completions 接口。citeturn0search3turn0search4
-
-### Grok
-使用 xAI API，默认 Base URL 为 `https://api.x.ai/v1`。当前目录加入 Grok 4.7、4.6、4.20、4.1、4、3。xAI 官方文档显示 Grok 4.7 支持 Responses API 和 Chat Completions，并支持 Web Search、X Search、代码执行等工具。citeturn0search0turn0search1
-
-
-## 已升级为统一 API 聚合网关
-
-当前聚合家族：
+### 🤖 已接入 AI 家族
 
 - OpenAI / GPT
 - DeepSeek
-- Claude
-- Qwen
-- Gemini
+- Claude / Anthropic
+- Qwen / 通义千问
+- Gemini / Google
 - GLM / Z.ai
 - 豆包 / 火山方舟
 - Grok / xAI
-- Meta Model API / Muse Spark
-- Microsoft AI / Azure OpenAI / Microsoft Foundry
+- Meta AI / Muse Spark
+- Microsoft AI / Foundry / Azure OpenAI
 - Kimi / Moonshot AI
 - MiniMax
 - 腾讯混元
+- 百度文心 / 千帆
+- 小米 MiMo
+- 阶跃星辰 / StepFun
 
-Meta Model API 当前官方 Base URL 为 `https://api.meta.ai/v1`，Muse Spark 1.3 是当前官方模型目录中的最新标准版。citeturn3search0turn3search8
+### ✨ 核心功能
 
-Microsoft 这里采用 Microsoft Foundry / Azure OpenAI 的部署模式，而不是把消费者版 Copilot 当成普通 API。Microsoft 官方提供统一的模型推理/兼容接口；Azure OpenAI v1 路径可用于 OpenAI-compatible 调用。citeturn0search1turn0search2turn0search7
+#### 💬 统一多模型聊天
 
-MiniMax 当前 API 平台提供 M3、M2.7 等模型系列，并支持 OpenAI-compatible 工具接入。citeturn1search4turn1search5
+同一个界面选择：
 
-腾讯混元提供 OpenAI-compatible API，官方当前文档给出的 Base URL 是 `https://api.hunyuan.cloud.tencent.com/v1`。citeturn1search2
+`AI 家族 → 模型 → 对话`
 
-### 统一 API
+也可以使用自定义模型 ID。
 
-除了网页端的 `/api/chat`，现在提供：
+#### 📎 文件上传
 
-- `GET /v1/models`：返回统一模型目录
-- `POST /v1/chat/completions`：统一 OpenAI-compatible Chat Completions
-- 模型可以写成 `provider/model`，例如 `deepseek/deepseek-v4-pro`
-- 如果设置 `GATEWAY_API_KEY`，统一网关会要求 `Authorization: Bearer <key>`
+支持在聊天中上传多个文本类文件，例如：
+
+- TXT
+- Markdown
+- JSON
+- CSV
+- 源代码文件
+- 其他可以直接读取为文本的文件
+
+文件内容会自动加入当前请求上下文，模型可以根据文件内容进行分析、总结、修改和问答。
+
+> 当前版本主要处理文本文件；PDF、Office、图片、音频、视频等原生文件解析属于后续扩展方向。
+
+#### 🌐 智能联网搜索
+
+提供三种模式：
+
+- **自动**：根据问题判断是否需要搜索
+- **始终开**：每次请求都尝试联网搜索
+- **关闭**：完全不进行联网搜索
+
+不同厂商会使用不同的搜索实现：Gemini 可使用 Google Search grounding，其他已接入模型通过统一搜索层提供搜索上下文。
+
+#### 💻 Markdown 与代码块
+
+模型输出支持 Markdown 基础渲染。
+
+代码会自动识别 fenced code block，例如：
+
+```python
+print("Hello World")
+```
+
+并以代码区域显示，同时提供**一键复制代码**按钮。
+
+#### 🔌 OpenAI-compatible 聚合 API
+
+API-AI 不只是聊天网页，还提供统一网关：
+
+```
+GET  /v1/models
+POST /v1/chat/completions
+```
+
+模型使用：
+
+```
+provider/model
+```
 
 例如：
+
+```
+deepseek/deepseek-v4-pro
+grok/grok-4.7
+mimo/mimo-v2.6-pro
+stepfun/step-5-preview
+```
+
+因此支持 OpenAI-compatible API 的客户端可以逐步接入 API-AI，而不需要分别对接十几家厂商。
+
+#### 🔐 API Key 与安全
+
+各厂商 API Key 只配置在服务器环境变量中，不写入前端代码。
+
+可使用：
+
+`GATEWAY_API_KEY`
+
+保护 API-AI 自己的统一网关。
+
+### 🧩 API 架构
+
+```
+客户端 / Web UI / 第三方 AI 客户端
+                │
+                ▼
+        ┌─────────────────┐
+        │     API-AI      │
+        │  Unified Gateway│
+        └────────┬────────┘
+                 │
+      ┌──────────┼──────────┐
+      ▼          ▼          ▼
+   OpenAI     DeepSeek    Claude
+      │          │          │
+      ├──── Qwen / Gemini ──┤
+      ├──── GLM / Doubao ───┤
+      ├──── Grok / Meta ────┤
+      ├──── Microsoft / Kimi┤
+      ├──── MiniMax / 混元 ─┤
+      └──── 文心 / MiMo / StepFun
+```
+
+### 📡 API 示例
 
 ```bash
 curl https://你的域名/v1/chat/completions \
@@ -148,17 +139,54 @@ curl https://你的域名/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "grok/grok-4.7",
-    "messages": [{"role":"user","content":"你好"}]
+    "messages": [
+      {"role": "user", "content": "你好"}
+    ]
   }'
 ```
 
-注意：目前统一网关先支持非流式 `stream:false`；SSE 流式、统一计费、用量统计、自动故障转移和负载均衡还可以作为下一阶段加入。
+### ⚙️ 环境变量
 
+每个厂商独立配置 API Key 和 Base URL，详见 `.env.example`。
 
-### 新增三家
+目前还没有把任何真实 API Key 提交到仓库。
 
-**百度文心 / 千帆**：使用千帆 V2 OpenAI-compatible API，默认 Base URL 为 `https://qianfan.baidubce.com/v2`。当前目录加入 ERNIE 5.0、ERNIE 5.0 Thinking Preview、ERNIE X1.1 Preview、ERNIE 4.5 Turbo，以及千帆中的 DeepSeek-V4 模型。citeturn2search0turn2search2
+### 🚧 当前限制 / 后续方向
 
-**小米 MiMo**：加入 MiMo-V2.6-Pro、MiMo-V2.6-Flash、MiMo-V2-Pro、MiMo-V2-Flash。小米官方目前列出的 MiMo-V2.6 API 模型名包括 `mimo-v2.6-pro` 和 `mimo-v2.6-flash`；MiMo-V2-Pro 也已公开 API。由于官方 API Endpoint 可能随开发者平台配置变化，本项目要求通过 `MIMO_BASE_URL` 显式配置，不硬编码一个未经官方文档确认的地址。citeturn1search2turn2search6
+API-AI 目前已经具备多厂商聚合的基础架构，但仍在持续开发：
 
-**阶跃星辰 / StepFun**：加入 Step 5 Preview、Step 3.7 Flash、Step 3.5 Flash 和 StepAudio 3 Realtime。官方示例使用 OpenAI SDK、`https://api.stepfun.com/v1`，因此直接走本项目统一的 Chat Completions 适配层。citeturn2search4
+- SSE 流式输出
+- PDF / DOCX / XLSX / PPTX 文件解析
+- 图片、音频、视频输入
+- 原生文件 API 适配
+- 自动模型发现
+- Token / 用量统计
+- API Key 管理
+- 限流与配额
+- 自动故障转移
+- 负载均衡
+- 统一计费
+- 更完整的 Responses API / Anthropic Messages API 兼容
+
+## 📦 本地运行
+
+```bash
+npm install
+node server.js
+```
+
+默认端口：
+
+```
+http://localhost:3000
+```
+
+## 🔒 安全提醒
+
+不要把真实 API Key 提交到 GitHub。
+
+推荐通过环境变量、部署平台 Secret 或服务器 Secret Manager 配置密钥。
+
+## 📄 License
+
+请以仓库中的 LICENSE 文件为准。
