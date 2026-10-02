@@ -115,6 +115,35 @@ const CATALOG={
    {id:"MiniMax-M2.7-highspeed",name:"MiniMax M2.7 Highspeed",family:"MiniMax M2",type:"高速 / 编程"}
   ]
  },
+ baidu:{
+  name:"百度文心 / 千帆",
+  models:[
+   {id:"ernie-5.0",name:"ERNIE 5.0",family:"ERNIE 5",type:"旗舰 / 原生多模态 / 推理"},
+   {id:"ernie-5.0-thinking-preview",name:"ERNIE 5.0 Thinking Preview",family:"ERNIE 5",type:"深度推理"},
+   {id:"ernie-x1.1-preview",name:"ERNIE X1.1 Preview",family:"ERNIE X",type:"推理 / Agent"},
+   {id:"ernie-4.5-turbo",name:"ERNIE 4.5 Turbo",family:"ERNIE 4.5",type:"高速通用"},
+   {id:"deepseek-v4-pro",name:"DeepSeek-V4-Pro（千帆）",family:"DeepSeek V4",type:"第三方模型"},
+   {id:"deepseek-v4-flash",name:"DeepSeek-V4-Flash（千帆）",family:"DeepSeek V4",type:"第三方模型"}
+  ]
+ },
+ mimo:{
+  name:"小米 MiMo",
+  models:[
+   {id:"mimo-v2.6-pro",name:"MiMo-V2.6-Pro",family:"MiMo V2.6",type:"旗舰 / Agent / 多模态"},
+   {id:"mimo-v2.6-flash",name:"MiMo-V2.6-Flash",family:"MiMo V2.6",type:"高速 / 推理 / 编程"},
+   {id:"mimo-v2-pro",name:"MiMo-V2-Pro",family:"MiMo V2",type:"Agent / 1M上下文"},
+   {id:"mimo-v2-flash",name:"MiMo-V2-Flash",family:"MiMo V2",type:"高速 / 推理 / 编程"}
+  ]
+ },
+ stepfun:{
+  name:"阶跃星辰 / StepFun",
+  models:[
+   {id:"step-5-preview",name:"Step 5 Preview",family:"Step 5",type:"旗舰 / 前沿模型"},
+   {id:"step-3.7-flash",name:"Step 3.7 Flash",family:"Step 3.7",type:"高速通用"},
+   {id:"step-3.5-flash",name:"Step 3.5 Flash",family:"Step 3.5",type:"高速通用"},
+   {id:"step-audio-3-realtime",name:"StepAudio 3 Realtime",family:"StepAudio 3",type:"实时语音"}
+  ]
+ },
  hunyuan:{
   name:"腾讯混元 / Tencent HY",
   models:[
@@ -149,13 +178,16 @@ const BASE={
  glm:process.env.GLM_BASE_URL||"https://api.z.ai/api/paas/v4",
  doubao:process.env.DOUBAO_BASE_URL||"https://ark.cn-beijing.volces.com/api/v3",
  grok:process.env.XAI_BASE_URL||"https://api.x.ai/v1",
+ baidu:process.env.BAIDU_BASE_URL||"https://qianfan.baidubce.com/v2",
+ mimo:process.env.MIMO_BASE_URL||"",
+ stepfun:process.env.STEPFUN_BASE_URL||"https://api.stepfun.com/v1",
  meta:process.env.META_BASE_URL||"https://api.meta.ai/v1",
  microsoft:process.env.MICROSOFT_BASE_URL||"",
  kimi:process.env.KIMI_BASE_URL||"https://api.moonshot.cn/v1",
  minimax:process.env.MINIMAX_BASE_URL||"https://api.minimax.io/v1",
  hunyuan:process.env.HUNYUAN_BASE_URL||"https://api.hunyuan.cloud.tencent.com/v1"
 };
-const KEYS={openai:"OPENAI_API_KEY",deepseek:"DEEPSEEK_API_KEY",claude:"ANTHROPIC_API_KEY",qwen:"DASHSCOPE_API_KEY",glm:"ZAI_API_KEY",doubao:"ARK_API_KEY",grok:"XAI_API_KEY",meta:"META_API_KEY",microsoft:"MICROSOFT_API_KEY",kimi:"KIMI_API_KEY",minimax:"MINIMAX_API_KEY",hunyuan:"HUNYUAN_API_KEY",gemini:"GEMINI_API_KEY"};
+const KEYS={openai:"OPENAI_API_KEY",deepseek:"DEEPSEEK_API_KEY",claude:"ANTHROPIC_API_KEY",qwen:"DASHSCOPE_API_KEY",glm:"ZAI_API_KEY",doubao:"ARK_API_KEY",grok:"XAI_API_KEY",baidu:"BAIDU_API_KEY",mimo:"MIMO_API_KEY",stepfun:"STEPFUN_API_KEY",meta:"META_API_KEY",microsoft:"MICROSOFT_API_KEY",kimi:"KIMI_API_KEY",minimax:"MINIMAX_API_KEY",hunyuan:"HUNYUAN_API_KEY",gemini:"GEMINI_API_KEY"};
 
 function json(res,status,data){
  res.writeHead(status,{"Content-Type":"application/json; charset=utf-8","Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"Content-Type, Authorization","Access-Control-Allow-Methods":"GET,POST,OPTIONS"});
@@ -192,6 +224,7 @@ async function chat(provider,messages,model,search){
  if(!CATALOG[provider])throw new Error("不支持的 AI 家族："+provider);
  if(!allowed(provider,model))throw new Error("模型不在当前家族目录中："+model);
 
+ if(provider==="mimo" && !BASE.mimo) throw new Error("MiMo 需要配置 MIMO_BASE_URL（请从小米 MiMo 开发者平台复制当前 API Endpoint）");
  if(provider==="microsoft" && model==="azure-deployment") model=process.env.AZURE_MODEL_DEPLOYMENT||"";
  if(provider==="microsoft" && model==="azure-openai") model=process.env.AZURE_MODEL_DEPLOYMENT||"";
  if(provider==="microsoft" && !model)throw new Error("Microsoft Foundry/Azure 需要配置 AZURE_MODEL_DEPLOYMENT");
