@@ -86,7 +86,9 @@ const CATALOG={
   name:"Meta AI / Meta Model API",
   models:[
    {id:"muse-spark-1.3",name:"Muse Spark 1.3",family:"Muse Spark",type:"旗舰 / Agent / 多模态"},
-   {id:"muse-spark-1.1",name:"Muse Spark 1.1",family:"Muse Spark",type:"推理 / 多模态"}
+   {id:"muse-spark-1.2",name:"Muse Spark 1.2",family:"Muse Spark",type:"推理 / 多模态"},
+   {id:"muse-spark-1.1",name:"Muse Spark 1.1",family:"Muse Spark",type:"推理 / 多模态"},
+   {id:"muse-spark-1.3-contributor",name:"Muse Spark 1.3 Contributor",family:"Muse Spark",type:"Contributor / 低成本"}
   ]
  },
  microsoft:{
@@ -147,7 +149,7 @@ const BASE={
  glm:process.env.GLM_BASE_URL||"https://api.z.ai/api/paas/v4",
  doubao:process.env.DOUBAO_BASE_URL||"https://ark.cn-beijing.volces.com/api/v3",
  grok:process.env.XAI_BASE_URL||"https://api.x.ai/v1",
- meta:process.env.META_BASE_URL||"https://api.llama.com/v1",
+ meta:process.env.META_BASE_URL||"https://api.meta.ai/v1",
  microsoft:process.env.MICROSOFT_BASE_URL||"",
  kimi:process.env.KIMI_BASE_URL||"https://api.moonshot.cn/v1",
  minimax:process.env.MINIMAX_BASE_URL||"https://api.minimax.io/v1",
@@ -227,6 +229,26 @@ const server=http.createServer(async(req,res)=>{
  if(req.method==="OPTIONS")return json(res,204,{});
  if(req.method==="GET"&&req.url==="/api/catalog")return json(res,200,Object.fromEntries(Object.entries(CATALOG).map(([id,p])=>[id,{name:p.name,models:p.models,configured:!!process.env[KEYS[id]]}])));
  if(req.method==="POST"&&req.url==="/api/search"){try{const b=await read(req);if(!b.query)return json(res,400,{error:"query 不能为空"});return json(res,200,await webSearch(String(b.query)))}catch(e){return json(res,500,{error:e.message})}}
+ if(req.method==="GET"&&req.url==="/v1/models"){
+  if(process.env.GATEWAY_API_KEY && req.headers.authorization!=="Bearer "+process.env.GATEWAY_API_KEY)return json(res,401,{error:{message:"Invalid gateway API key",type:"invalid_request_error"}});
+  const data=Object.entries(CATALOG).flatMap(([provider,p])=>p.models.map(m=>({id:provider+"/"+m.id,object:"model",created:Date.now(),owned_by:p.name,provider,model:m.id})));
+  return json(res,200,{object:"list",data});
+ }
+ if(req.method==="POST"&&req.url==="/v1/chat/completions"){try{
+  if(process.env.GATEWAY_API_KEY && req.headers.authorization!=="Bearer "+process.env.GATEWAY_API_KEY)return json(res,401,{error:{message:"Invalid gateway API key",type:"invalid_request_error"}});
+  const b=await read(req);
+  if(!Array.isArray(b.messages)||!b.messages.length)return json(res,400,{error:{message:"messages 不能为空",type:"invalid_request_error"}});
+  if(b.stream)return json(res,400,{error:{message:"当前聚合网关暂未开启 SSE 流式输出，请使用 stream:false",type:"invalid_request_error"}});
+  let provider,model;
+  if(String(b.model||"").includes("/"))[provider,model]=String(b.model).split(/\/(.+)/);
+  else {
+   const found=Object.entries(CATALOG).flatMap(([p,v])=>v.models.map(m=>({provider:p,model:m.id}))).find(x=>x.model===b.model);
+   if(!found)return json(res,400,{error:{message:"未知模型："+b.model,type:"invalid_request_error"}});
+   provider=found.provider;model=found.model;
+  }
+  const out=await chat(provider,b.messages,model,!!b.web_search);
+  return json(res,200,{id:"chatcmpl-"+Date.now(),object:"chat.completion",created:Math.floor(Date.now()/1000),model:provider+"/"+out.model,choices:[{index:0,message:{role:"assistant",content:out.content},finish_reason:"stop"}],usage:out.usage||undefined});
+ }catch(e){return json(res,500,{error:{message:e.message,type:"api_error"}})}}
  if(req.method==="POST"&&req.url==="/api/chat"){try{const b=await read(req);if(!Array.isArray(b.messages)||!b.messages.length)return json(res,400,{error:"messages 不能为空"});return json(res,200,await chat(b.provider||"openai",b.messages,b.model,!!b.webSearch))}catch(e){return json(res,500,{error:e.message})}}
  return json(res,404,{error:"Not Found"});
 });
