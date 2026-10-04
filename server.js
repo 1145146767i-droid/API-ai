@@ -282,10 +282,12 @@ async function geminiChat(messages,model,search,systemPrompt="",temperature=0.7)
 }
 
 async function longcatChat(messages,model,systemPrompt="",temperature=0.7){
-  const url=joinUrl(PROVIDERS.longcat.baseUrl,"chat/completions");
-  const body={model,messages,temperature:Math.max(0,Math.min(1,temperature))};
-  const r=await fetchJson(url,{method:"POST",headers:{"Authorization":"Bearer "+requireKey("longcat"),"Content-Type":"application/json"},body});
-  return {provider:"longcat",model:r.model||model,content:r.choices?.[0]?.message?.content||"",webSearch:false};
+ const key=keyFor("longcat");
+ const body={model,messages,temperature:Math.max(0,Math.min(1,temperature))};
+ if(systemPrompt)body.messages=[{role:"system",content:String(systemPrompt)},...messages];
+ const r=await fetch(BASE.longcat+"/chat/completions",{method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},body:JSON.stringify(body)});
+ const d=await r.json();if(!r.ok)throw new Error(d.error?.message||("LongCat API 错误："+r.status));
+ return {provider:"longcat",model:d.model||model,content:d.choices?.[0]?.message?.content||"",webSearch:false};
 }
 
 async function chat(provider,messages,model,searchMode="auto",files=[],systemPrompt="",temperature=0.7){
