@@ -232,6 +232,13 @@ async function geminiChat(messages,model,search,systemPrompt="",temperature=0.7)
  return {provider:"gemini",model:d.modelVersion||model,content:text,webSearch:!!search,grounding:d.candidates?.[0]?.groundingMetadata||null};
 }
 
+async function longcatChat(messages,model,systemPrompt="",temperature=0.7){
+  const url=joinUrl(PROVIDERS.longcat.baseUrl,"chat/completions");
+  const body={model,messages,temperature:Math.max(0,Math.min(1,temperature))};
+  const r=await fetchJson(url,{method:"POST",headers:{"Authorization":"Bearer "+requireKey("longcat"),"Content-Type":"application/json"},body});
+  return {provider:"longcat",model:r.model||model,content:r.choices?.[0]?.message?.content||"",webSearch:false};
+}
+
 async function chat(provider,messages,model,searchMode="auto",files=[],systemPrompt="",temperature=0.7){
 
  if(!CATALOG[provider])throw new Error("不支持的 AI 家族："+provider);
@@ -241,7 +248,8 @@ async function chat(provider,messages,model,searchMode="auto",files=[],systemPro
  if(provider==="microsoft" && model==="azure-deployment") model=process.env.AZURE_MODEL_DEPLOYMENT||"";
  if(provider==="microsoft" && model==="azure-openai") model=process.env.AZURE_MODEL_DEPLOYMENT||"";
  if(provider==="microsoft" && !model)throw new Error("Microsoft Foundry/Azure 需要配置 AZURE_MODEL_DEPLOYMENT");
- if(provider==="gemini"){const mode=normalizeSearchMode(searchMode);const q=[...messages].reverse().find(m=>m.role==="user")?.content;const shouldSearch=mode==="always" || (mode==="auto" && /^(查|搜索|搜一下|联网|最新|今天|现在|新闻|价格|官网|资料|查找|检索)/.test(String(q||"")));return geminiChat(messages,model,shouldSearch,systemPrompt,temperature)}
+ if(provider==="longcat")return longcatChat(messages,model,systemPrompt,temperature);
+  if(provider==="gemini"){const mode=normalizeSearchMode(searchMode);const q=[...messages].reverse().find(m=>m.role==="user")?.content;const shouldSearch=mode==="always" || (mode==="auto" && /^(查|搜索|搜一下|联网|最新|今天|现在|新闻|价格|官网|资料|查找|检索)/.test(String(q||"")));return geminiChat(messages,model,shouldSearch,systemPrompt,temperature)}
 
  let finalMessages=messages.map(m=>({...m}));
  if(systemPrompt)finalMessages=[{role:"system",content:String(systemPrompt)},...finalMessages];
