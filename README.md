@@ -24,6 +24,11 @@ API-AI 是一个面向开发者的**统一 AI API 聚合平台**：把不同厂�
 - 百度文心 / 千帆
 - 小米 MiMo
 - 阶跃星辰 / StepFun
+- LongCat / 美团
+- 盘古 / 华为云 MaaS
+- 商汤 / SenseNova
+- Mistral AI
+- Ollama
 
 ### ✨ 核心功能
 
@@ -128,7 +133,8 @@ stepfun/step-5-preview
       ├──── Grok / Meta ────┤
       ├──── Microsoft / Kimi┤
       ├──── MiniMax / 混元 ─┤
-      └──── 文心 / MiMo / StepFun
+      ├──── 文心 / MiMo / StepFun / LongCat
+      └──── 盘古 / 商汤 / Mistral / Ollama
 ```
 
 ### 📡 API 示例
@@ -148,6 +154,12 @@ curl https://你的域名/v1/chat/completions \
 ### ⚙️ 环境变量
 
 每个厂商独立配置 API Key 和 Base URL，详见 `.env.example`。
+
+- **LongCat**：官方 OpenAI-compatible API，当前平台模型包括 `LongCat-2.5-Preview` 和 `LongCat-2.0`。官方端点为 `https://api.longcat.chat/openai/v1`。citeturn0search0turn0search10
+- **盘古 / 华为云 MaaS**：使用华为云 MaaS 的 OpenAI-compatible V2 接口 `/api/v2/chat/completions`；区域 Endpoint 需要按你的华为云部署区域填写。citeturn2search0turn3search4
+- **商汤 SenseNova**：支持 SenseNova V6.5 Pro/Turbo 等模型，并提供 OpenAI-compatible 接口。citeturn3search0turn2search3
+- **Mistral**：官方 Chat Completions 为 `/v1/chat/completions`，默认 Base URL 为 `https://api.mistral.ai/v1`。citeturn1search0turn1search4
+- **Ollama**：同时支持本地 `http://localhost:11434/v1` 和云端 `https://ollama.com/v1` 的 OpenAI-compatible API；本地调用可不配置 API Key。citeturn0search1turn0search6
 
 目前还没有把任何真实 API Key 提交到仓库。
 
