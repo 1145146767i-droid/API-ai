@@ -152,6 +152,45 @@ const CATALOG={
    {id:"hunyuan-standard",name:"混元 Standard",family:"混元 Standard",type:"通用"}
   ]
  },
+ longcat:{
+  name:"LongCat / 美团",
+  models:[
+   {id:"LongCat-2.5-Preview",name:"LongCat-2.5-Preview",family:"LongCat 2.5",type:"旗舰 / Agent / 多模态"},
+   {id:"LongCat-2.0",name:"LongCat-2.0",family:"LongCat 2",type:"Agent / 通用"}
+  ]
+ },
+ pangu:{
+  name:"盘古 / 华为云",
+  models:[
+   {id:"pangu-nlp-n1-32k",name:"Pangu-NLP-N1-32K",family:"盘古 NLP",type:"通用文本"},
+   {id:"custom-pangu-model",name:"自定义盘古部署模型",family:"盘古 MaaS",type:"自定义 Deployment Model ID"}
+  ]
+ },
+ sensetime:{
+  name:"商汤 / SenseNova",
+  models:[
+   {id:"SenseNova-V6.5-Pro",name:"SenseNova V6.5 Pro",family:"SenseNova V6.5",type:"旗舰 / 多模态"},
+   {id:"SenseNova-V6.5-Turbo",name:"SenseNova V6.5 Turbo",family:"SenseNova V6.5",type:"高速 / 多模态"},
+   {id:"SenseChat-Character-Pro",name:"SenseChat Character Pro",family:"SenseNova Character",type:"角色对话"}
+  ]
+ },
+ mistral:{
+  name:"Mistral AI",
+  models:[
+   {id:"mistral-large-latest",name:"Mistral Large",family:"Mistral Large",type:"旗舰 / 通用"},
+   {id:"mistral-medium-latest",name:"Mistral Medium",family:"Mistral Medium",type:"通用"},
+   {id:"mistral-small-latest",name:"Mistral Small",family:"Mistral Small",type:"轻量 / 高性价比"},
+   {id:"codestral-latest",name:"Codestral",family:"Codestral",type:"编程"}
+  ]
+ },
+ ollama:{
+  name:"Ollama",
+  models:[
+   {id:"llama3.2",name:"Llama 3.2（本地示例）",family:"Ollama Local",type:"本地模型 / 可自定义"},
+   {id:"gemma4:31b",name:"Gemma 4 31B（云端示例）",family:"Ollama Cloud",type:"云端模型 / 可自定义"},
+   {id:"custom-ollama-model",name:"自定义 Ollama 模型",family:"Ollama",type:"填写本地或云端模型 ID"}
+  ]
+ },
  gemini:{
   name:"Gemini / Google",
   models:[
@@ -185,9 +224,14 @@ const BASE={
  microsoft:process.env.MICROSOFT_BASE_URL||"",
  kimi:process.env.KIMI_BASE_URL||"https://api.moonshot.cn/v1",
  minimax:process.env.MINIMAX_BASE_URL||"https://api.minimax.io/v1",
- hunyuan:process.env.HUNYUAN_BASE_URL||"https://api.hunyuan.cloud.tencent.com/v1"
+ hunyuan:process.env.HUNYUAN_BASE_URL||"https://api.hunyuan.cloud.tencent.com/v1",
+ longcat:process.env.LONGCAT_BASE_URL||"https://api.longcat.chat/openai/v1",
+ pangu:process.env.PANGU_BASE_URL||"",
+ sensetime:process.env.SENSETIME_BASE_URL||"https://api.sensenova.cn/compatible-mode/v1",
+ mistral:process.env.MISTRAL_BASE_URL||"https://api.mistral.ai/v1",
+ ollama:process.env.OLLAMA_BASE_URL||"http://localhost:11434/v1"
 };
-const KEYS={openai:"OPENAI_API_KEY",deepseek:"DEEPSEEK_API_KEY",claude:"ANTHROPIC_API_KEY",qwen:"DASHSCOPE_API_KEY",glm:"ZAI_API_KEY",doubao:"ARK_API_KEY",grok:"XAI_API_KEY",baidu:"BAIDU_API_KEY",mimo:"MIMO_API_KEY",stepfun:"STEPFUN_API_KEY",meta:"META_API_KEY",microsoft:"MICROSOFT_API_KEY",kimi:"KIMI_API_KEY",minimax:"MINIMAX_API_KEY",hunyuan:"HUNYUAN_API_KEY",gemini:"GEMINI_API_KEY"};
+const KEYS={openai:"OPENAI_API_KEY",deepseek:"DEEPSEEK_API_KEY",claude:"ANTHROPIC_API_KEY",qwen:"DASHSCOPE_API_KEY",glm:"ZAI_API_KEY",doubao:"ARK_API_KEY",grok:"XAI_API_KEY",baidu:"BAIDU_API_KEY",mimo:"MIMO_API_KEY",stepfun:"STEPFUN_API_KEY",meta:"META_API_KEY",microsoft:"MICROSOFT_API_KEY",kimi:"KIMI_API_KEY",minimax:"MINIMAX_API_KEY",hunyuan:"HUNYUAN_API_KEY",gemini:"GEMINI_API_KEY",longcat:"LONGCAT_API_KEY",pangu:"PANGU_API_KEY",sensetime:"SENSETIME_API_KEY",mistral:"MISTRAL_API_KEY",ollama:"OLLAMA_API_KEY"};
 
 function json(res,status,data){
  res.writeHead(status,{"Content-Type":"application/json; charset=utf-8","Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"Content-Type, Authorization","Access-Control-Allow-Methods":"GET,POST,OPTIONS"});
@@ -205,7 +249,12 @@ function fileContext(files=[]){
 function normalizeSearchMode(mode){
  return mode==="always"||mode==="off"?""+mode:"auto";
 }
-function keyFor(provider){const k=process.env[KEYS[provider]];if(!k)throw new Error("服务器没有配置 "+KEYS[provider]);return k}
+function keyFor(provider){
+ const k=KEYS[provider]?process.env[KEYS[provider]]:"";
+ if(provider==="ollama" && !k)return "";
+ if(!k)throw new Error("服务器没有配置 "+KEYS[provider]);
+ return k;
+}
 function allowed(provider,model){return CATALOG[provider]?.models.some(x=>x.id===model)}
 function messagesToText(messages){return messages.map(m=>m.role.toUpperCase()+": "+(typeof m.content==="string"?m.content:JSON.stringify(m.content))).join("\n")}
 
@@ -249,6 +298,12 @@ async function chat(provider,messages,model,searchMode="auto",files=[],systemPro
  if(provider==="microsoft" && model==="azure-openai") model=process.env.AZURE_MODEL_DEPLOYMENT||"";
  if(provider==="microsoft" && !model)throw new Error("Microsoft Foundry/Azure 需要配置 AZURE_MODEL_DEPLOYMENT");
  if(provider==="longcat")return longcatChat(messages,model,systemPrompt,temperature);
+ if(provider==="pangu" && !BASE.pangu) throw new Error("盘古需要配置 PANGU_BASE_URL（请填写华为云 MaaS 的区域 Endpoint）");
+ if(provider==="ollama" && !BASE.ollama) throw new Error("Ollama 需要配置 OLLAMA_BASE_URL");
+ if(provider==="pangu" && model==="custom-pangu-model") model=process.env.PANGU_MODEL||"";
+ if(provider==="pangu" && !model) throw new Error("盘古需要配置 PANGU_MODEL");
+ if(provider==="ollama" && model==="custom-ollama-model") model=process.env.OLLAMA_MODEL||"";
+ if(provider==="ollama" && !model) throw new Error("Ollama 需要配置 OLLAMA_MODEL");
   if(provider==="gemini"){const mode=normalizeSearchMode(searchMode);const q=[...messages].reverse().find(m=>m.role==="user")?.content;const shouldSearch=mode==="always" || (mode==="auto" && /^(查|搜索|搜一下|联网|最新|今天|现在|新闻|价格|官网|资料|查找|检索)/.test(String(q||"")));return geminiChat(messages,model,shouldSearch,systemPrompt,temperature)}
 
  let finalMessages=messages.map(m=>({...m}));
@@ -281,7 +336,8 @@ async function chat(provider,messages,model,searchMode="auto",files=[],systemPro
   return {provider,model:d.model||model,content:(d.content||[]).filter(x=>x.type==="text").map(x=>x.text).join("\n"),webSearch:shouldSearch};
  }
 
- const headers={"Content-Type":"application/json","Authorization":"Bearer "+key};
+ const headers={"Content-Type":"application/json"};
+ if(key)headers.Authorization="Bearer "+key;
  if(provider==="microsoft" && process.env.AZURE_API_VERSION) headers["api-version"]=process.env.AZURE_API_VERSION;
  const r=await fetch(BASE[provider]+"/chat/completions",{method:"POST",headers,body:JSON.stringify({model,messages:finalMessages,temperature})});
  const d=await r.json();if(!r.ok)throw new Error(d.error?.message||("上游 API 错误："+r.status));
